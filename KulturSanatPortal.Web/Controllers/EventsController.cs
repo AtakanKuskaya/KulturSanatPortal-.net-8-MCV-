@@ -1,73 +1,117 @@
-﻿// KulturSanatPortal.Web/Controllers/EventsController.cs
-using System.Globalization;
-using System.Linq;
+﻿using KulturSanatPortal.Application.Categories;
 using KulturSanatPortal.Application.Events;
-using KulturSanatPortal.Web.Models.Home;
+using KulturSanatPortal.Web.Models.Home; // MiniCalendarVm, MiniDay
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace KulturSanatPortal.Web.Controllers;
-
-public class EventsController(IEventReadService svc) : Controller
+namespace KulturSanatPortal.Web.Controllers
 {
-    private const int PageSize = 12;
-    private static readonly CultureInfo Tr = new("tr-TR");
-
-    // /etkinlikler  ve /events
-    [HttpGet]
-    [Route("etkinlikler", Name = "EventsIndex")]
-    [Route("events")]
-    public async Task<IActionResult> Index(
-        int? categoryId, int? venueId, int? y, int? m, int page = 1, CancellationToken ct = default)
-        => View(await svc.ListUpcomingAsync(categoryId, venueId, y, m, page, PageSize, ct));
-
-    // /etkinlikler/gecmis
-    [HttpGet("etkinlikler/gecmis")]
-    public async Task<IActionResult> Past(int page = 1, CancellationToken ct = default)
-        => View(await svc.ListPastAsync(page, PageSize, ct));
-
-    // /etkinlikler/takvim
-    [HttpGet("etkinlikler/takvim")]
-    public async Task<IActionResult> Calendar(int? y, int? m, CancellationToken ct = default)
+    public class EventsController : Controller
     {
-        var now = DateTime.Today;
-        var year = y ?? now.Year;
-        var month = m ?? now.Month;
-        var items = await svc.ListForCalendarAsync(year, month, ct);
-        ViewBag.Year = year; ViewBag.Month = month;
-        return View(items);
-    }
+        private readonly IEventReadService _events;
+        private readonly ICategoryReadService _categories;
 
-    // /etkinlik/{slug}
-    [HttpGet("etkinlik/{slug}")]
-    public async Task<IActionResult> Details(string slug, CancellationToken ct = default)
-    {
-        var d = await svc.GetBySlugAsync(slug, ct);
-        return d is null ? NotFound() : View(d);
-    }
+        // const yerine static readonly: Hot Reload sırasında ENC0011 uyarısını engeller
+        private static readonly int PageSize = 12;
 
-    // /etkinlikler/gun/2025/9/8  (ayrıca /Events/Day de çalışsın)
-    [HttpGet]
-    [Route("etkinlikler/gun/{year:int}/{month:int}/{day:int}")]
-    [Route("events/day/{year:int}/{month:int}/{day:int}")]
-    public async Task<IActionResult> Day(int year, int month, int day, CancellationToken ct = default)
-    {
-        // Geçersiz tarihleri kibarca takvim sayfasına yönlendir
-        DateTime target;
-        try { target = new DateTime(year, month, day); }
-        catch { return RedirectToAction(nameof(Calendar), new { y = year, m = month }); }
+        public EventsController(IEventReadService events, ICategoryReadService categories)
+        {
+            _events = events;
+            _categories = categories;
+        }
 
-        var monthItems = await svc.ListForCalendarAsync(year, month, ct);
+        [HttpGet]
+        [Route("etkinlikler", Name = "EventsIndex")]
+        [Route("events")]
+        public async Task<IActionResult> Index(
+            int? y, int? m, DateTime? date, int? categoryId, string? week, int page = 1, CancellationToken ct = default)
+        {
+            var now = DateTime.Today;
+            var year = y ?? now.Year;
+            var month = m ?? now.Month;
 
-        var list = monthItems
-            .Where(e => e.StartLocal.Date == target.Date)
-            .Select(e => new EventCard(
-                e.Id, e.Title, e.Slug,
-                e.StartLocal, e.VenueName, e.CategoryName, e.Summary,
-                e.HeroImagePath // artık kapak da geliyor
-            ))
-            .ToList();
+            // 1) Takvim için ay verisi
+            var monthItems = await _events.ListForCalendarAsync(year, month, ct);
+            var counts = monthItems
+                .GroupBy(e => e.StartLocal.Date)
+                .ToDictionary(g => g.Key, g => g.Count());
 
-        ViewBag.DateTitle = target.ToString("dd MMMM yyyy", Tr);
-        return View(list);
+            var first = new DateTime(year, month, 1);
+            var offset = ((int)first.DayOfWeek + 6) % 7; // Pazartesi başlangıç
+            var start = first.AddDays(-offset);
+
+            var days = new List<MiniDay>(42);
+            for (int i = 0; i < 42; i++)
+            {
+                var d = start.AddDays(i);
+                counts.TryGetValue(d.Date, out var c);
+                days.Add(new MiniDay(d, d.Month == month, d.Date == now.Date, c));
+            }
+            ViewBag.CalendarModel = new MiniCalendarVm { Year = year, Month = month, Days = days };
+
+            // 2) Kategoriler
+            ViewBag.Categories = await _categories.ListAsync(ct);
+
+            // 3) Sağ liste (ilk yükleme)
+            IEnumerable<object> list;
+            if (date.HasValue)
+            {
+                list = monthItems
+                        .Where(e => e.StartLocal.Date == date.Value.Date)
+                        .Cast<object>()
+                        .ToList();
+            }
+            else
+            {
+                var vm = await _events.ListUpcomingAsync(categoryId, null, year, month, page, PageSize, ct);
+
+                var raw =
+                    (vm?.GetType().GetProperty("Items")?.GetValue(vm) as System.Collections.IEnumerable) ??
+                    (vm?.GetType().GetProperty("Events")?.GetValue(vm) as System.Collections.IEnumerable) ??
+                    (vm as System.Collections.IEnumerable);
+
+                list = raw != null ? raw.Cast<object>().ToList() : Enumerable.Empty<object>();
+            }
+
+            ViewBag.Year = year;
+            ViewBag.Month = month;
+            ViewBag.SelectedDate = date?.ToString("yyyy-MM-dd");
+            ViewBag.SelectedCategory = categoryId;
+
+            return View(list);
+        }
+
+        // GET /Events/ListPartial?date=2025-09-19&categoryId=3
+        [HttpGet]
+        public async Task<IActionResult> ListPartial(DateTime? date, int? categoryId, CancellationToken ct = default)
+        {
+            IEnumerable<object> list;
+
+            if (date.HasValue)
+            {
+                var monthItems = await _events.ListForCalendarAsync(date.Value.Year, date.Value.Month, ct);
+                list = monthItems
+                        .Where(e => e.StartLocal.Date == date.Value.Date)
+                        .Cast<object>()
+                        .ToList();
+            }
+            else
+            {
+                var vm = await _events.ListUpcomingAsync(categoryId, null, null, null, 1, PageSize, ct);
+
+                var raw =
+                    (vm?.GetType().GetProperty("Items")?.GetValue(vm) as System.Collections.IEnumerable) ??
+                    (vm?.GetType().GetProperty("Events")?.GetValue(vm) as System.Collections.IEnumerable) ??
+                    (vm as System.Collections.IEnumerable);
+
+                list = raw != null ? raw.Cast<object>().ToList() : Enumerable.Empty<object>();
+            }
+
+            return PartialView("_EventList", list);
+        }
     }
 }

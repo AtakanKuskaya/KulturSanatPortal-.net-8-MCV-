@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/events.ui.css" />
 </head>
 <body class="bg-gradient">
 
@@ -24,9 +25,6 @@
                 <ul class="navbar-nav ms-auto gap-lg-2">
                     <li class="nav-item"><a class="nav-link" asp-controller="Venues" asp-action="Index"><i class="bi bi-geo-alt"></i> Salonlar</a></li>
                     <a class="nav-link" asp-route="EventsIndex"><i class="bi bi-music-note-beamed"></i> Etkinlikler</a>
-
-                    <li class="nav-item"><a class="nav-link" asp-controller="Events" asp-action="Calendar"><i class="bi bi-calendar3"></i> Takvim</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Events" asp-action="Past"><i class="bi bi-archive"></i> Geçmiş</a></li>
                     <li class="nav-item"><a class="nav-link" asp-controller="News" asp-action="Index"><i class="bi bi-newspaper"></i> Haberler</a></li>
                 </ul>
             </div>
@@ -46,6 +44,10 @@
 
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/mini-calendar.ajax.js" defer></script>
+    <script src="~/js/events.ui.js" defer></script>
+    <script src="~/js/events.filter.js" defer></script>
+
     @RenderSection("Scripts", required: false)
 </body>
 </html>

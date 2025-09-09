@@ -1,85 +1,83 @@
-﻿@model KulturSanatPortal.Application.Common.PagedResult<KulturSanatPortal.Application.Events.EventListItemDto>
-@using System.Globalization
+﻿@using System.Globalization
+@using KulturSanatPortal.Web.Models.Home
+@using KulturSanatPortal.Application.Categories
+
 @{
     ViewData["Title"] = "Etkinlikler";
-    var tr = new CultureInfo("tr-TR");
-    // filtrelerin sayfalamada korunması
-    var qCat = (string?)Context.Request.Query["categoryId"];
-    var qVen = (string?)Context.Request.Query["venueId"];
-    var qY = (string?)Context.Request.Query["y"];
-    var qM = (string?)Context.Request.Query["m"];
-}
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 m-0"><i class="bi bi-music-note-beamed me-1"></i> @ViewData["Title"]</h1>
-    <a class="btn btn-sm btn-outline-secondary" asp-action="Calendar"><i class="bi bi-calendar3"></i> Takvim</a>
-</div>
-
-@if (!Model.Items.Any())
-{
-    <div class="alert alert-light border">Listelenecek etkinlik bulunamadı.</div>
-}
-else
-{
-    <div class="grid-tiles">
-        @foreach (var e in Model.Items)
+    object? Prop(object? o, string n) { var p = o?.GetType().GetProperty(n); return p?.GetValue(o); }
+    IEnumerable<object> AsList(object? o)
+    {
+        if (o is null) return Enumerable.Empty<object>();
+        if (o is IEnumerable<object> ie) return ie;
+        if (o is System.Collections.IEnumerable ien && o is not string) return ien.Cast<object>();
+        foreach (var k in new[] { "Items", "Events", "List", "Results", "Data" })
         {
-            var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
-            ? Url.Content(e.HeroImagePath!)
-            : $"https://picsum.photos/seed/event{e.Id}/800/450";
+            var v = Prop(o, k);
+            if (v is IEnumerable<object> ie2) return ie2;
+            if (v is System.Collections.IEnumerable ien2 && v is not string) return ien2.Cast<object>();
+        }
+        return Enumerable.Empty<object>();
+    }
 
-            <div class="card h-100 card-hover">
-                <div class="card-media">
-                    <img src="@img" alt="@e.Title" loading="lazy" decoding="async" />
-                    <span class="badge text-bg-primary position-absolute top-0 end-0 m-2">
-                        @e.StartLocal.ToString("dd MMM", tr)
-                    </span>
-                </div>
+    var items = AsList(Model).ToList(); // sağdaki ilk liste
+    var cal = (MiniCalendarVm)ViewBag.CalendarModel;
+    var cats = (IEnumerable<CategoryDto>)(ViewBag?.Categories ?? Enumerable.Empty<CategoryDto>());
+    string? selectedDate = ViewBag.SelectedDate as string;
+    int? selectedCat = ViewBag.SelectedCategory as int?;
+}
+
+<div class="container-xxl px-3 px-lg-4 events-page">
+    <div class="row g-4">
+        <!-- SOL: Takvim + Kategoriler -->
+        <aside class="col-lg-4">
+            <div class="card soft shadow-sm rounded-4 overflow-hidden mb-3">
+                <div class="card-header bg-white border-0 fw-semibold fs-5">Etkinlik Takvimi</div>
                 <div class="card-body">
-                    <h3 class="h6 mb-1">
-                        <a class="stretched-link text-decoration-none"
-                           asp-action="Details" asp-route-slug="@e.Slug">@e.Title</a>
-                    </h3>
-                    <div class="text-secondary small">
-                        <i class="bi bi-clock"></i> @e.StartLocal.ToString("dd.MM.yyyy HH:mm", tr)
-                        &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> @e.VenueName
-                        &nbsp;·&nbsp;<i class="bi bi-tag"></i> @e.CategoryName
+                    @await Html.PartialAsync("_MiniCalendar", cal)
+                    <div class="small text-secondary mt-2">
+                        <i class="bi bi-dot"></i>o günkü etkinlik sayısı · güne tıklayınca liste açılır.
                     </div>
-                    @if (!string.IsNullOrWhiteSpace(e.Summary))
-                    {
-                        <p class="small mt-2 line-clamp-2">@e.Summary</p>
-                    }
                 </div>
             </div>
-        }
-    </div>
 
-    @if (Model.TotalPages > 1)
-    {
-        <nav class="mt-4">
-            <ul class="pagination justify-content-center flex-wrap gap-1">
-                <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
-                    <a class="page-link"
-                       asp-route-page="@(Model.Page - 1)"
-                       asp-route-categoryId="@qCat" asp-route-venueId="@qVen"
-                       asp-route-y="@qY" asp-route-m="@qM">Önceki</a>
-                </li>
-                @for (int p = 1; p <= Model.TotalPages; p++)
-                {
-                    <li class="page-item @(p == Model.Page ? "active" : "")">
-                        <a class="page-link"
-                           asp-route-page="@p"
-                           asp-route-categoryId="@qCat" asp-route-venueId="@qVen"
-                           asp-route-y="@qY" asp-route-m="@qM">@p</a>
-                    </li>
-                }
-                <li class="page-item @(Model.HasNext ? "" : "disabled")">
-                    <a class="page-link"
-                       asp-route-page="@(Model.Page + 1)"
-                       asp-route-categoryId="@qCat" asp-route-venueId="@qVen"
-                       asp-route-y="@qY" asp-route-m="@qM">Sonraki</a>
-                </li>
-            </ul>
-        </nav>
-    }
-}
+            @if (cats.Any())
+            {
+                <div class="card soft shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 fw-semibold fs-6">Kategoriler</div>
+                    <div class="card-body">
+                        <form id="catForm" class="d-grid gap-2" onsubmit="return false">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="categoryId" id="cat_all" value=""
+                                       @(selectedCat is null ? "checked" : null) />
+                                <label class="form-check-label" for="cat_all">Tümünü Göster</label>
+                            </div>
+                            @foreach (var c in cats)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="categoryId" id="cat_@c.Id" value="@c.Id"
+                                           @(selectedCat == c.Id ? "checked" : null) />
+                                    <label class="form-check-label" for="cat_@c.Id">@c.Name</label>
+                                </div>
+                            }
+                        </form>
+                    </div>
+                </div>
+            }
+        </aside>
+
+        <!-- SAĞ: Liste -->
+        <div class="col-lg-8">
+            <div class="d-flex flex-wrap gap-2 justify-content-end mb-2">
+                <a class="btn btn-light btn-sm" href="#" data-today>Bugün</a>
+                <a class="btn btn-light btn-sm" asp-controller="Events" asp-action="Index" asp-route-week="this">Bu Hafta</a>
+                <a class="btn btn-light btn-sm" asp-controller="Events" asp-action="Index">Tümünü Göster</a>
+            </div>
+
+            <div id="evtList">
+                @await Html.PartialAsync("_EventList", items)
+            </div>
+        </div>
+    </div>
+</div>

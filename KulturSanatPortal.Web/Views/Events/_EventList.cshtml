@@ -1,0 +1,54 @@
+﻿@model IEnumerable<object>
+@using System.Globalization
+@{
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+    object? P(object? o, string n) { var p = o?.GetType().GetProperty(n); return p?.GetValue(o); }
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-light border d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-info-circle"></i>
+        <div>Bu tarihte etkinlik yok.</div>
+    </div>
+}
+else
+{
+    <div class="evt-list">
+        @foreach (var e in Model)
+        {
+            var title = (P(e, "Title") ?? P(e, "Name"))?.ToString() ?? "Etkinlik";
+            var slug = (P(e, "Slug") ?? P(e, "Id"))?.ToString();
+            var img = (P(e, "HeroImagePath") ?? P(e, "ImageUrl"))?.ToString();
+            var venue = (P(e, "VenueName") ?? P(e, "Venue"))?.ToString();
+            var start = (P(e, "StartLocal") as DateTime?) ?? DateTime.MinValue;
+
+            var imgUrl = string.IsNullOrWhiteSpace(img)
+            ? Url.Content("~/img/placeholders/event-wide.jpg")
+            : (img!.StartsWith("/") ? Url.Content(img) : img);
+
+            <article class="evt-item shadow-sm">
+                <div class="thumb"><img src="@imgUrl" alt="@title" loading="lazy" decoding="async" /></div>
+                <div class="content">
+                    <h3 class="evt-title">
+                        <a class="stretched-link text-decoration-none"
+                           asp-controller="Events" asp-action="Details" asp-route-slug="@slug">@title</a>
+                    </h3>
+                    @if (!string.IsNullOrWhiteSpace(venue))
+                    {
+                        <div class="evt-venue"><i class="bi bi-geo-alt"></i> @venue</div>
+                    }
+                </div>
+                <div class="meta">
+                    <div class="meta-col"><div class="label">Tarih</div><div class="value">@start.ToString("dd.MM.yyyy", tr)</div></div>
+                    <div class="meta-col"><div class="label">Saat</div><div class="value">@start.ToString("HH:mm", tr)</div></div>
+                    <div class="more">
+                        <a asp-controller="Events" asp-action="Details" asp-route-slug="@slug" class="link-more">
+                            Detaylar <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+}

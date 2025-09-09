@@ -1,89 +1,104 @@
-﻿@model IReadOnlyList<KulturSanatPortal.Application.Events.EventListItemDto>
-@using System.Globalization
+﻿@using System.Globalization
+@using KulturSanatPortal.Web.Models.Home
+
 @{
-    var tr = new CultureInfo("tr-TR");
-    var y = (int)ViewBag.Year;
-    var m = (int)ViewBag.Month;
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
 
-    var monthStart = new DateTime(y, m, 1);
-    var gridStart = monthStart;
-    while (gridStart.DayOfWeek != DayOfWeek.Monday) gridStart = gridStart.AddDays(-1);
+    // --- Model'den güvenli liste çıkar ---
+    object? Prop(object? o, string n) { var p = o?.GetType().GetProperty(n); return p?.GetValue(o); }
+    IEnumerable<object> AsList(object? o)
+    {
+        if (o is null) return Enumerable.Empty<object>();
+        if (o is IEnumerable<object> ie) return ie;
+        if (o is System.Collections.IEnumerable ien && o is not string) return ien.Cast<object>();
+        return Enumerable.Empty<object>();
+    }
 
-    var days = Enumerable.Range(0, 42).Select(i => gridStart.AddDays(i)).ToList();
-    var counts = Model.GroupBy(e => e.StartLocal.Date).ToDictionary(g => g.Key, g => g.Count());
+    var items = AsList(Model).ToList();  // Controller: ListForCalendar... döndürüyor
+
+    // --- Ay/Yıl (ViewBag -> bugün) ---
+    int y = (ViewBag?.Year as int?) ?? DateTime.Today.Year;
+    int m = (ViewBag?.Month as int?) ?? DateTime.Today.Month;
+
+    // --- Takvim için gün/adet haritası (listelenen kayıtlar üzerinden) ---
+    var counts = items
+        .Select(e => Prop(e, "StartLocal"))
+        .OfType<DateTime>()
+        .GroupBy(d => d.Date)
+        .ToDictionary(g => g.Key, g => g.Count());
+
+    // --- Home'daki MiniCalendarVm ile birebir 6x7 grid (Pazartesi başlangıç) ---
+    var first = new DateTime(y, m, 1);
+    var offset = ((int)first.DayOfWeek + 6) % 7; // Mon=0..Sun=6
+    var start = first.AddDays(-offset);
+
+    var days = new List<MiniDay>(42);
+    for (int i = 0; i < 42; i++)
+    {
+        var d = start.AddDays(i);
+        counts.TryGetValue(d.Date, out var c);
+        days.Add(new MiniDay(
+            d,                 // DateLocal
+            d.Month == m,      // InMonth
+            d.Date == DateTime.Today.Date, // IsToday
+            c                  // Count
+        ));
+    }
+    var cal = new MiniCalendarVm { Year = y, Month = m, Days = days };
+
+    string MonthTitle(int Y, int M) => new DateTime(Y, M, 1).ToString("MMMM yyyy", tr);
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 m-0"><i class="bi bi-calendar3 me-1"></i> @monthStart.ToString("MMMM yyyy", tr)</h1>
-    <div class="btn-group">
-        <a class="btn btn-sm btn-outline-secondary"
-           asp-action="Calendar" asp-route-y="@monthStart.AddMonths(-1).Year" asp-route-m="@monthStart.AddMonths(-1).Month">
-            <i class="bi bi-chevron-left"></i>
-        </a>
-        <a class="btn btn-sm btn-outline-secondary"
-           asp-action="Calendar" asp-route-y="@monthStart.AddMonths(1).Year" asp-route-m="@monthStart.AddMonths(1).Month">
-            <i class="bi bi-chevron-right"></i>
-        </a>
-    </div>
-</div>
+<div class="container-xxl px-3 px-lg-4 events-page">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card soft shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 fw-semibold fs-5">@MonthTitle(y, m)</div>
+                <div class="card-body">
+                    @* Takvim: doğru tipte model *@
+                    @await Html.PartialAsync("_MiniCalendar", cal)
+                </div>
+            </div>
+        </div>
 
-<div class="card-admin p-2">
-    <div class="table-responsive">
-        <table class="table align-middle mb-0">
-            <thead>
-                <tr class="text-secondary">
-                    <th>Pzt</th>
-                    <th>Sal</th>
-                    <th>Çar</th>
-                    <th>Per</th>
-                    <th>Cum</th>
-                    <th>Cts</th>
-                    <th>Paz</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (int r = 0; r < 6; r++)
+        <div class="col-lg-8">
+            <div class="evt-list">
+                @foreach (var e in items)
                 {
-                    <tr>
-                        @for (int c = 0; c < 7; c++)
-                        {
-                            var d = days[r * 7 + c];
-                            var inMonth = d.Month == m;
-                            var count = counts.TryGetValue(d.Date, out var cnt) ? cnt : 0;
-                            <td class="align-top" style="min-width:120px; height:100px;">
-                                <div class="p-2 rounded @(inMonth ? "" : "text-secondary-50")">
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <strong>@d.Day</strong>
-                                        @if (count > 0)
-                                        {
-                                            <a class="badge text-bg-primary text-decoration-none"
-                                               asp-action="Day" asp-route-year="@d.Year" asp-route-month="@d.Month" asp-route-day="@d.Day">
-                                                @count etkinlik
-                                            </a>
-                                        }
-                                    </div>
-                                    @if (count == 0)
-                                    {
-                                        <div class="small text-secondary-50">—</div>
-                                    }
-                                    else
-                                    {
-                                        foreach (var e in Model.Where(x => x.StartLocal.Date == d.Date).Take(2))
-                                        {
-                                            <div class="small text-truncate">
-                                                <i class="bi bi-dot"></i>
-                                                <a class="text-decoration-none" asp-action="Details" asp-route-slug="@e.Slug">
-                                                    @e.Title
-                                                </a>
-                                            </div>
-                                        }
-                                    }
-                                </div>
-                            </td>
-                        }
-                    </tr>
+                    string title = (Prop(e, "Title") ?? Prop(e, "Name"))?.ToString() ?? "Etkinlik";
+                    string? slug = (Prop(e, "Slug") ?? Prop(e, "Id"))?.ToString();
+                    string? img = (Prop(e, "HeroImagePath") ?? Prop(e, "ImageUrl"))?.ToString();
+                    string? venue = (Prop(e, "VenueName") ?? Prop(e, "Venue"))?.ToString();
+                    var startDt = (Prop(e, "StartLocal") as DateTime?) ?? DateTime.MinValue;
+
+                    var imgUrl = string.IsNullOrWhiteSpace(img)
+                    ? Url.Content("~/img/placeholders/event-wide.jpg")
+                    : (img!.StartsWith("/") ? Url.Content(img) : img);
+
+                    <article class="evt-item shadow-sm">
+                        <div class="thumb"><img src="@imgUrl" alt="@title" /></div>
+                        <div class="content">
+                            <h3 class="evt-title">
+                                <a class="stretched-link text-decoration-none"
+                                   asp-controller="Events" asp-action="Details" asp-route-slug="@slug">@title</a>
+                            </h3>
+                            @if (!string.IsNullOrWhiteSpace(venue))
+                            {
+                                <div class="evt-venue"><i class="bi bi-geo-alt"></i> @venue</div>
+                            }
+                        </div>
+                        <div class="meta">
+                            <div class="meta-col"><div class="label">Tarih</div><div class="value">@startDt.ToString("dd.MM.yyyy", tr)</div></div>
+                            <div class="meta-col"><div class="label">Saat</div><div class="value">@startDt.ToString("HH:mm", tr)</div></div>
+                            <div class="more">
+                                <a asp-controller="Events" asp-action="Details" asp-route-slug="@slug" class="link-more">
+                                    Detaylar <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </article>
                 }
-            </tbody>
-        </table>
+            </div>
+        </div>
     </div>
 </div>

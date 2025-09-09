@@ -1,22 +1,55 @@
 ﻿@model KulturSanatPortal.Application.Events.EventDetailsDto
+@using System
 @using System.Globalization
+
 @{
-    var tr = new CultureInfo("tr-TR");
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
     ViewData["Title"] = Model.Title;
+
+    // Kapak görseli
     var hero = !string.IsNullOrWhiteSpace(Model.HeroImagePath)
-        ? Url.Content(Model.HeroImagePath!)
+        ? (Model.HeroImagePath!.StartsWith("/") ? Url.Content(Model.HeroImagePath) : Model.HeroImagePath)
         : $"https://picsum.photos/seed/ev{Model.Id}/1400/600";
+
+    // Basit harita embed (adres varsa)
+    string? mapsEmbed = null;
+    if (!string.IsNullOrWhiteSpace(Model.VenueName))
+    {
+        var q = Uri.EscapeDataString(Model.VenueName);
+        mapsEmbed = $"https://www.google.com/maps?output=embed&q={q}";
+    }
+
+    // Opsiyonel: ilgili etkinlikler ViewBag üzerinden gelebilir
+    object? Prop(object? o, string n) { var p = o?.GetType().GetProperty(n); return p?.GetValue(o); }
+    IEnumerable<object> AsList(object? o)
+    {
+        if (o is null) return Enumerable.Empty<object>();
+        if (o is IEnumerable<object> ie) return ie;
+        if (o is System.Collections.IEnumerable ien && o is not string) return ien.Cast<object>();
+        return Enumerable.Empty<object>();
+    }
+    var related = AsList(ViewBag?.Related ?? ViewBag?.OtherEvents).Take(6).ToList();
 }
 
+<!-- HERO -->
 <div class="mb-3 card-admin overflow-hidden">
     <div class="position-relative" style="aspect-ratio:16/7;">
         <img src="@hero" alt="@Model.Title" class="w-100 h-100" style="object-fit:cover;" />
         <div class="position-absolute bottom-0 start-0 end-0 p-3 p-md-4"
              style="background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.55));color:#fff;">
             <div class="small opacity-75 mb-1">
-                <i class="bi bi-clock"></i>
-                @Model.StartLocal.ToString("dd MMM yyyy HH:mm", tr)
-                – @Model.EndLocal.ToString("HH:mm", tr)
+                <i class="bi bi-calendar-event"></i>
+                @Model.StartLocal.ToString("dd MMM yyyy", tr)
+                @if (Model.EndLocal.Date > Model.StartLocal.Date)
+                {
+                    <text> – @Model.EndLocal.ToString("dd MMM yyyy", tr)</text>
+                }
+                &nbsp;·&nbsp;<i class="bi bi-clock"></i>
+                @Model.StartLocal.ToString("HH:mm", tr)
+                @if (Model.EndLocal > Model.StartLocal)
+                {
+                    <text> – @Model.EndLocal.ToString("HH:mm", tr)</text>
+                }
                 &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> @Model.VenueName
                 &nbsp;·&nbsp;<i class="bi bi-tag"></i> @Model.CategoryName
             </div>
@@ -26,47 +59,111 @@
 </div>
 
 <div class="row g-4">
+    <!-- SOL SÜTUN -->
     <div class="col-lg-8">
+
         @if (!string.IsNullOrWhiteSpace(Model.Summary))
         {
-            <p class="lead">@Model.Summary</p>
+            <div class="card-admin p-3 mb-3">
+                <div class="fw-semibold mb-2">Etkinlik Detayları</div>
+                <p class="mb-0">@Model.Summary</p>
+            </div>
         }
 
         @if (!string.IsNullOrWhiteSpace(Model.DescriptionHtml))
         {
-            <article class="card-admin p-3">@Html.Raw(Model.DescriptionHtml)</article>
+           
+            <article class="card-admin p-3 mb-3">
+                <div class="fw-semibold mb-2">Etkinlik İçeriği</div>
+                @Html.Raw(Model.DescriptionHtml)
+            </article>
         }
 
         @if (Model.Gallery?.Any() == true)
         {
-            <div class="mt-3">
-                <div class="gallery">
+            <div class="card-admin p-3 mb-3">
+                <div class="fw-semibold mb-2">Galeri</div>
+                <div class="row g-2">
                     @foreach (var g in Model.Gallery)
                     {
-                        var p = Url.Content(g);
-                        <a href="@p" target="_blank" rel="noopener">
-                            <img src="@p" alt="@Model.Title" loading="lazy" decoding="async" />
-                        </a>
+                        var p = g.StartsWith("/") ? Url.Content(g) : g;
+                        <div class="col-6 col-md-4">
+                            <a href="@p" target="_blank" rel="noopener" class="d-block rounded overflow-hidden" style="aspect-ratio:4/3;">
+                                <img src="@p" class="w-100 h-100" style="object-fit:cover;" alt="@Model.Title" loading="lazy" decoding="async" />
+                            </a>
+                        </div>
                     }
                 </div>
             </div>
         }
+
+        @if (!string.IsNullOrWhiteSpace(mapsEmbed))
+        {
+            <div class="card-admin p-2">
+                <div class="fw-semibold px-2 pt-2">Konum</div>
+                <div class="ratio ratio-16x9">
+                    <iframe src="@mapsEmbed" style="border:0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+                <div class="px-2 pb-2 pt-2">
+                    <div class="small text-secondary"><i class="bi bi-geo-alt"></i> @Model.VenueName</div>
+                    <a class="btn btn-sm btn-outline-secondary mt-2" target="_blank" rel="noopener"
+                       href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString(Model.VenueName)">
+                        Haritada Aç
+                    </a>
+                </div>
+            </div>
+        }
+
     </div>
 
+    <!-- SAĞ SÜTUN -->
     <aside class="col-lg-4">
-        <div class="card-admin p-3">
-            <div class="fw-semibold mb-2">Bilgiler</div>
-            <div class="small mb-2">
-                <i class="bi bi-clock"></i>
-                @Model.StartLocal.ToString("dd.MM.yyyy HH:mm", tr) – @Model.EndLocal.ToString("HH:mm", tr)
+
+        <div class="card-admin p-3 mb-3">
+            <div class="fw-semibold mb-2">Etkinlik Bilgileri</div>
+
+            <div class="d-flex align-items-start gap-2 small mb-2">
+                <i class="bi bi-calendar-event mt-1"></i>
+                <div>
+                    <div class="text-secondary">Başlangıç</div>
+                    <div class="fw-semibold">@Model.StartLocal.ToString("dd MMM yyyy HH:mm", tr)</div>
+                </div>
             </div>
-            <div class="small mb-2"><i class="bi bi-geo-alt"></i> @Model.VenueName</div>
-            <div class="small mb-2"><i class="bi bi-tag"></i> @Model.CategoryName</div>
+
+            <div class="d-flex align-items-start gap-2 small mb-2">
+                <i class="bi bi-calendar2-check mt-1"></i>
+                <div>
+                    <div class="text-secondary">Bitiş</div>
+                    <div class="fw-semibold">@Model.EndLocal.ToString("dd MMM yyyy HH:mm", tr)</div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-start gap-2 small mb-2">
+                <i class="bi bi-tag mt-1"></i>
+                <div>
+                    <div class="text-secondary">Kategori</div>
+                    <div class="fw-semibold">@Model.CategoryName</div>
+                </div>
+            </div>
 
             @if (!string.IsNullOrWhiteSpace(Model.PriceInfo))
             {
-                <div class="small mb-2"><i class="bi bi-cash-coin"></i> @Model.PriceInfo</div>
+                <div class="d-flex align-items-start gap-2 small mb-2">
+                    <i class="bi bi-cash-coin mt-1"></i>
+                    <div>
+                        <div class="text-secondary">Ücret</div>
+                        <div class="fw-semibold">@Model.PriceInfo</div>
+                    </div>
+                </div>
             }
+
+            <div class="d-flex align-items-start gap-2 small mb-2">
+                <i class="bi bi-geo-alt mt-1"></i>
+                <div>
+                    <div class="text-secondary">Adres</div>
+                    <div class="fw-semibold">@Model.VenueName</div>
+                </div>
+            </div>
 
             <div class="d-grid gap-2 mt-3">
                 @if (!string.IsNullOrWhiteSpace(Model.TicketUrl))
@@ -75,10 +172,54 @@
                         <i class="bi bi-ticket-perforated"></i> Bilet Al
                     </a>
                 }
-                <a class="btn btn-outline-secondary" asp-action="Index">
+                <a class="btn btn-outline-secondary" asp-controller="Events" asp-action="Index">
                     <i class="bi bi-arrow-left"></i> Etkinliklere Dön
                 </a>
             </div>
         </div>
+
+        @if (related.Any())
+        {
+            <div class="card-admin p-3">
+                <div class="fw-semibold mb-2">Diğer Etkinlikler</div>
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var r in related)
+                    {
+                        string rtitle = (Prop(r, "Title") ?? Prop(r, "Name"))?.ToString() ?? "Etkinlik";
+                        string? rslug = (Prop(r, "Slug") ?? Prop(r, "Id"))?.ToString();
+                        DateTime? rdate = Prop(r, "StartLocal") as DateTime?;
+                        string? rimg = (Prop(r, "HeroImagePath") ?? Prop(r, "ImageUrl"))?.ToString();
+                        var rimgUrl = string.IsNullOrWhiteSpace(rimg) ? Url.Content("~/img/placeholders/event.jpg")
+                        : (rimg!.StartsWith("/") ? Url.Content(rimg) : rimg);
+
+                        <a class="d-flex align-items-center gap-2 text-decoration-none rounded p-1 hover-bg"
+                           asp-controller="Events" asp-action="Details" asp-route-slug="@rslug">
+                            <img src="@rimgUrl" alt="@rtitle" width="48" height="48" class="rounded object-fit-cover" />
+                            <div class="small">
+                                <div class="fw-semibold">@rtitle</div>
+                                @if (rdate.HasValue)
+                                {
+                                    <div class="text-secondary">@rdate.Value.ToString("dd.MM.yyyy", tr)</div>
+                                }
+                            </div>
+                        </a>
+                    }
+                </div>
+                <div class="d-grid mt-2">
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Events" asp-action="Index">Tüm Etkinlikleri Gör</a>
+                </div>
+            </div>
+        }
     </aside>
 </div>
+
+<style>
+    /* sayfaya küçük dokunuşlar */
+    .hover-bg:hover {
+        background: rgba(0,0,0,.03);
+    }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+</style>

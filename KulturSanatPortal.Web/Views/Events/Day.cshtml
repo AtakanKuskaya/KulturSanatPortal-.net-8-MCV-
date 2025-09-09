@@ -1,48 +1,40 @@
-﻿@model IReadOnlyList<KulturSanatPortal.Web.Models.Home.EventCard>
-@using System.Globalization
+﻿@using System.Globalization
 @{
-    var tr = new CultureInfo("tr-TR");
-    var title = (string)(ViewBag.DateTitle ?? "Etkinlikler");
-    ViewData["Title"] = title;
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+    IEnumerable<object> items = (Model as IEnumerable<object>) ?? (Model is System.Collections.IEnumerable ien ? ien.Cast<object>() : Enumerable.Empty<object>());
+    object? Prop(object? o, string n) { var p = o?.GetType().GetProperty(n); return p?.GetValue(o); }
+    string dateTitle = ViewBag?.DateTitle as string ?? DateTime.Today.ToString("dd MMMM yyyy", tr);
 }
+<div class="container-xxl px-3 px-lg-4 events-page">
+    <div class="evt-head">
+        <div class="title">Seçilen Gün</div>
+        <div class="sub">@dateTitle</div>
+    </div>
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h5 m-0"><i class="bi bi-calendar-day me-1"></i> @title</h1>
-    <a class="btn btn-sm btn-outline-secondary" onclick="history.back()"><i class="bi bi-arrow-left"></i> Geri</a>
-</div>
-
-@if (!Model.Any())
-{
-    <div class="alert alert-light border">Bu gün için etkinlik bulunamadı.</div>
-}
-else
-{
-    <div class="grid-tiles">
-        @foreach (var e in Model)
+    <div class="evt-list">
+        @foreach (var e in items)
         {
-            var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
-            ? Url.Content(e.HeroImagePath!)
-            : $"https://picsum.photos/seed/day{e.Id}/800/450";
-
-            <div class="card h-100 card-hover">
-                <div class="card-media">
-                    <img src="@img" alt="@e.Title" loading="lazy" decoding="async" />
-                </div>
-                <div class="card-body">
-                    <h3 class="h6 mb-1">
-                        <a class="stretched-link text-decoration-none"
-                           asp-action="Details" asp-route-slug="@e.Slug">@e.Title</a>
-                    </h3>
-                    <div class="text-secondary small">
-                        <i class="bi bi-clock"></i> @e.StartLocal.ToString("HH:mm", tr)
-                        &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> @e.VenueName
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(e.Summary))
+            string title = (Prop(e, "Title") ?? Prop(e, "Name"))?.ToString() ?? "Etkinlik";
+            string? slug = (Prop(e, "Slug") ?? Prop(e, "Id"))?.ToString();
+            string? img = (Prop(e, "HeroImagePath") ?? Prop(e, "ImageUrl"))?.ToString();
+            string? venue = (Prop(e, "VenueName") ?? Prop(e, "Venue"))?.ToString();
+            var start = (Prop(e, "StartLocal") as DateTime?) ?? DateTime.MinValue;
+            var imgUrl = string.IsNullOrWhiteSpace(img) ? Url.Content("~/img/placeholders/event-wide.jpg")
+            : (img!.StartsWith("/") ? Url.Content(img) : img);
+            <article class="evt-item shadow-sm">
+                <div class="thumb"><img src="@imgUrl" alt="@title" /></div>
+                <div class="content">
+                    <h3 class="evt-title"><a class="stretched-link text-decoration-none" asp-controller="Events" asp-action="Details" asp-route-slug="@slug">@title</a></h3>
+                    @if (!string.IsNullOrWhiteSpace(venue))
                     {
-                        <p class="small mt-2 line-clamp-2">@e.Summary</p>
+                        <div class="evt-venue"><i class="bi bi-geo-alt"></i> @venue</div>
                     }
                 </div>
-            </div>
+                <div class="meta">
+                    <div class="meta-col"><div class="label">Saat</div><div class="value">@start.ToString("HH:mm", tr)</div></div>
+                    <div class="more"><a asp-controller="Events" asp-action="Details" asp-route-slug="@slug" class="link-more">Detaylar <i class="bi bi-chevron-right"></i></a></div>
+                </div>
+            </article>
         }
     </div>
-}
+</div>

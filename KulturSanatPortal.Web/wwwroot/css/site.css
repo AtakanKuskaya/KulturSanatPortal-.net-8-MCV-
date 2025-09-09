@@ -434,3 +434,27 @@ header.glass, footer.glass {
     max-width: none;
 }
 /* sað sütunda taþma olmasýn */
+/* Mini takvim — konumlandýrma ve yedek rozet */
+/* Mini takvim — konumlandýrma ve yedek rozet */
+.calendar-mini .day {
+    position: relative;
+    min-height: 34px;
+}
+
+    .calendar-mini .day .badge {
+        position: absolute;
+        right: .35rem;
+        bottom: .35rem;
+        line-height: 1;
+    }
+
+    /* Badge yoksa ve data-count>0 ise küçük nokta göster */
+    .calendar-mini .day .badge-fallback {
+        position: absolute;
+        right: .45rem;
+        bottom: .45rem;
+        width: .45rem;
+        height: .45rem;
+        border-radius: 50%;
+        background: var(--brand-600, #4f46e5);
+    }

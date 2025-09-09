@@ -1,68 +1,58 @@
-﻿@model KulturSanatPortal.Application.Common.PagedResult<KulturSanatPortal.Application.Events.EventListItemDto>
-@using System.Globalization
+﻿@using System.Globalization
 @{
-    ViewData["Title"] = "Geçmiş Etkinlikler"; var tr = new CultureInfo("tr-TR");
-}
-
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 m-0"><i class="bi bi-clock-history me-1"></i> @ViewData["Title"]</h1>
-    <a class="btn btn-sm btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left"></i> Güncel</a>
-</div>
-
-@if (!Model.Items.Any())
-{
-    <div class="alert alert-light border">Kayıt bulunamadı.</div>
-}
-else
-{
-    <div class="grid-tiles">
-        @foreach (var e in Model.Items)
+    ViewData["Title"] = "Geçmiş Etkinlikler";
+    var tr = CultureInfo.GetCultureInfo("tr-TR");
+    object? Prop(object? o, string n) { var p = o?.GetType().GetProperty(n); return p?.GetValue(o); }
+    IEnumerable<object> AsList(object? o)
+    {
+        if (o is null) return Enumerable.Empty<object>();
+        if (o is IEnumerable<object> ie) return ie;
+        if (o is System.Collections.IEnumerable ien && o is not string) return ien.Cast<object>();
+        foreach (var k in new[] { "Items", "Events", "List", "Results", "Data" })
         {
-            var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
-            ? Url.Content(e.HeroImagePath!)
-            : $"https://picsum.photos/seed/past{e.Id}/800/450";
+            var v = Prop(o, k);
+            if (v is IEnumerable<object> ie2) return ie2;
+            if (v is System.Collections.IEnumerable ien2 && v is not string) return ien2.Cast<object>();
+        }
+        return Enumerable.Empty<object>();
+    }
+    var items = AsList(Model).ToList();
+    var pager = Prop(Model, "Pager") ?? Prop(Model, "Pagination");
+}
+<div class="container-xxl px-3 px-lg-4 events-page">
+    <div class="evt-head"><div class="title">Geçmiş Etkinlikler</div><div class="sub">@DateTime.Today.ToString("yyyy")</div></div>
 
-            <div class="card h-100 card-hover">
-                <div class="card-media">
-                    <img src="@img" alt="@e.Title" loading="lazy" decoding="async" />
-                    <span class="badge text-bg-secondary position-absolute top-0 end-0 m-2">
-                        @e.StartLocal.ToString("dd MMM", tr)
-                    </span>
-                </div>
-                <div class="card-body">
-                    <h3 class="h6 mb-1">
-                        <a class="stretched-link text-decoration-none"
-                           asp-action="Details" asp-route-slug="@e.Slug">@e.Title</a>
-                    </h3>
-                    <div class="text-secondary small">
-                        <i class="bi bi-geo-alt"></i> @e.VenueName · <i class="bi bi-tag"></i> @e.CategoryName
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(e.Summary))
+    <div class="evt-list">
+        @foreach (var e in items)
+        {
+            string title = (Prop(e, "Title") ?? Prop(e, "Name"))?.ToString() ?? "Etkinlik";
+            string? slug = (Prop(e, "Slug") ?? Prop(e, "Id"))?.ToString();
+            string? img = (Prop(e, "HeroImagePath") ?? Prop(e, "ImageUrl"))?.ToString();
+            string? venue = (Prop(e, "VenueName") ?? Prop(e, "Venue"))?.ToString();
+            var start = (Prop(e, "StartLocal") as DateTime?) ?? DateTime.MinValue;
+
+            var imgUrl = string.IsNullOrWhiteSpace(img) ? Url.Content("~/img/placeholders/event-wide.jpg")
+            : (img!.StartsWith("/") ? Url.Content(img) : img);
+            <article class="evt-item shadow-sm">
+                <div class="thumb"><img src="@imgUrl" alt="@title" /></div>
+                <div class="content">
+                    <h3 class="evt-title"><a class="stretched-link text-decoration-none" asp-controller="Events" asp-action="Details" asp-route-slug="@slug">@title</a></h3>
+                    @if (!string.IsNullOrWhiteSpace(venue))
                     {
-                        <p class="small mt-2 line-clamp-2">@e.Summary</p>
+                        <div class="evt-venue"><i class="bi bi-geo-alt"></i> @venue</div>
                     }
                 </div>
-            </div>
+                <div class="meta">
+                    <div class="meta-col"><div class="label">Tarih</div><div class="value">@start.ToString("dd.MM.yyyy", tr)</div></div>
+                    <div class="meta-col"><div class="label">Saat</div><div class="value">@start.ToString("HH:mm", tr)</div></div>
+                    <div class="more"><a asp-controller="Events" asp-action="Details" asp-route-slug="@slug" class="link-more">Detaylar <i class="bi bi-chevron-right"></i></a></div>
+                </div>
+            </article>
         }
     </div>
 
-    @if (Model.TotalPages > 1)
+    @if (pager is not null)
     {
-        <nav class="mt-4">
-            <ul class="pagination justify-content-center flex-wrap gap-1">
-                <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
-                    <a class="page-link" asp-route-page="@(Model.Page - 1)">Önceki</a>
-                </li>
-                @for (int p = 1; p <= Model.TotalPages; p++)
-                {
-                    <li class="page-item @(p == Model.Page ? "active" : "")">
-                        <a class="page-link" asp-route-page="@p">@p</a>
-                    </li>
-                }
-                <li class="page-item @(Model.HasNext ? "" : "disabled")">
-                    <a class="page-link" asp-route-page="@(Model.Page + 1)">Sonraki</a>
-                </li>
-            </ul>
-        </nav>
+        <div class="mt-3">@await Html.PartialAsync("_PublicPager", (object)pager)</div>
     }
-}
+</div>
