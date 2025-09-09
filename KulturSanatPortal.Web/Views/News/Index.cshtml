@@ -1,0 +1,64 @@
+﻿@model KulturSanatPortal.Application.Common.PagedResult<KulturSanatPortal.Application.News.NewsListItemDto>
+@using System.Globalization
+@{
+    ViewData["Title"] = "Haberler";
+    var tr = new CultureInfo("tr-TR");
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0"><i class="bi bi-newspaper me-1"></i> @ViewData["Title"]</h1>
+</div>
+
+@if (!Model.Items.Any())
+{
+    <div class="alert alert-light border">Henüz haber bulunamadı.</div>
+}
+else
+{
+    <div class="grid-tiles">
+        @foreach (var n in Model.Items)
+        {
+            var img = string.IsNullOrWhiteSpace(n.HeroImagePath)
+            ? Url.Content($"/img/placeholders/news-{(n.Id % 5) + 1}.webp")
+            : Url.Content(n.HeroImagePath.StartsWith("/") ? n.HeroImagePath : "/" + n.HeroImagePath);
+
+            <div class="card h-100 card-hover">
+                <div class="card-media">
+                    <img src="@img" alt="@n.Title" loading="lazy" decoding="async" />
+                </div>
+                <div class="card-body">
+                    <h3 class="h6 mb-1">
+                        <a class="stretched-link text-decoration-none"
+                           asp-action="Details" asp-route-slug="@n.Slug">@n.Title</a>
+                    </h3>
+                    <div class="text-secondary small">@n.PublishedLocal:d</div>
+                    @if (!string.IsNullOrWhiteSpace(n.Summary))
+                    {
+                        <p class="small mt-2 line-clamp-2">@n.Summary</p>
+                    }
+                </div>
+            </div>
+        }
+
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center flex-wrap gap-1">
+                <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
+                    <a class="page-link" asp-route-page="@(Model.Page - 1)">Önceki</a>
+                </li>
+                @for (int p = 1; p <= Model.TotalPages; p++)
+                {
+                    <li class="page-item @(p == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                    <a class="page-link" asp-route-page="@(Model.Page + 1)">Sonraki</a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

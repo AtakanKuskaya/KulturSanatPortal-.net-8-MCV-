@@ -1,0 +1,95 @@
+﻿@model IEnumerable<KulturSanatPortal.Domain.Entities.News>
+@{
+    ViewData["Title"] = "Haberler";
+    var total = (int)(ViewBag.Total ?? 0);
+    var page = (int)(ViewBag.Page ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 20);
+    var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / Math.Max(1, pageSize)));
+}
+
+<div class="card-admin p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <strong>Haberler</strong>
+            <span class="badge badge-soft">Toplam @total</span>
+        </div>
+        <a class="btn btn-primary btn-sm" asp-action="Create"><i class="bi bi-plus"></i> Yeni</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-modern align-middle">
+            <thead>
+                <tr>
+                    <th style="width:80px;">Kapak</th>
+                    <th>Başlık</th>
+                    <th>Yayın</th>
+                    <th>Durum</th>
+                    <th style="width:120px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">Kayıt yok.</td></tr>
+                }
+                else
+                {
+                    foreach (var n in Model)
+                    {
+                        var cover = !string.IsNullOrWhiteSpace(n.HeroImagePath)
+                        ? Url.Content(n.HeroImagePath)
+                        : "https://picsum.photos/seed/news/160/90";
+                        <tr>
+                            <td>
+                                <img src="@cover" alt="" style="width:72px;height:44px;object-fit:cover;border-radius:8px;" loading="lazy">
+                            </td>
+                            <td class="text-truncate" style="max-width:480px;">@n.Title</td>
+                            <td>@n.PublishedAtUtc.ToLocalTime():g</td>
+                            <td>
+                                @if (n.IsPublished)
+                                {
+                                    <span class="badge text-bg-success">Yayında</span>
+                                }
+                                else
+                                {
+
+                                    <span class="badge text-bg-secondary">Taslak</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@n.Id" title="Düzenle">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a class="btn btn-outline-danger" asp-action="Delete" asp-route-id="@n.Id" title="Sil">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (totalPages > 1)
+    {
+        <nav class="mt-3">
+            <ul class="pagination pager justify-content-center flex-wrap gap-1">
+                <li class="page-item @(page > 1 ? "" : "disabled")">
+                    <a class="page-link" asp-route-page="@(page - 1)">Önceki</a>
+                </li>
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <li class="page-item @(p == page ? "active" : "")">
+                        <a class="page-link" asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="page-item @(page < totalPages ? "" : "disabled")">
+                    <a class="page-link" asp-route-page="@(page + 1)">Sonraki</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>

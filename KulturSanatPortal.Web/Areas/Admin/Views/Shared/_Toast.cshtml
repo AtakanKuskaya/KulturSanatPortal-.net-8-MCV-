@@ -1,0 +1,38 @@
+﻿@{
+    // TempData kullanım örnekleri:
+    // TempData["ToastSuccess"] = "Kayıt oluşturuldu";
+    // TempData["ToastError"]   = "Hata oluştu";
+    // TempData["ToastInfo"]    = "Bilgi mesajı";
+    string s = TempData["ToastSuccess"] as string;
+    string e = TempData["ToastError"] as string;
+    string i = TempData["ToastInfo"] as string;
+}
+<div aria-live="polite" aria-atomic="true" class="position-fixed top-0 end-0 p-3" style="z-index: 1060;">
+    @if (!string.IsNullOrWhiteSpace(s))
+    {
+        <div class="toast auto align-items-center text-bg-success border-0 mb-2" role="alert">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-check-circle me-1"></i> @s</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    }
+    @if (!string.IsNullOrWhiteSpace(e))
+    {
+        <div class="toast auto align-items-center text-bg-danger border-0 mb-2" role="alert">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-x-circle me-1"></i> @e</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    }
+    @if (!string.IsNullOrWhiteSpace(i))
+    {
+        <div class="toast auto align-items-center text-bg-primary border-0 mb-2" role="alert">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-info-circle me-1"></i> @i</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    }
+</div>

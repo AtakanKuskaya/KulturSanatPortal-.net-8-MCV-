@@ -1,0 +1,56 @@
+﻿@functions {
+    bool IsActive(string controller, string? action = null)
+    {
+        var c = (string?)ViewContext.RouteData.Values["Controller"];
+        var a = (string?)ViewContext.RouteData.Values["Action"];
+        if (!string.Equals(c, controller, StringComparison.OrdinalIgnoreCase)) return false;
+        return action is null || string.Equals(a, action, StringComparison.OrdinalIgnoreCase);
+    }
+}
+<div class="p-3">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="badge badge-soft">Yönetim</span>
+    </div>
+
+    <ul class="nav flex-column gap-1">
+        <li class="nav-item">
+            <a class="nav-link @(IsActive("Dashboard") ? "active" : "")"
+               asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-speedometer2"></i><span class="nav-label"> Panel</span>
+            </a>
+        </li>
+        <li class="nav-item mt-2 text-muted small ps-2">İçerik</li>
+        <li class="nav-item">
+            <a class="nav-link @(IsActive("Events") ? "active" : "")"
+               asp-area="Admin" asp-controller="Events" asp-action="Index">
+                <i class="bi bi-calendar-event"></i><span class="nav-label"> Etkinlikler</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(IsActive("News") ? "active" : "")"
+               asp-area="Admin" asp-controller="News" asp-action="Index">
+                <i class="bi bi-newspaper"></i><span class="nav-label"> Haberler</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(IsActive("Venues") ? "active" : "")"
+               asp-area="Admin" asp-controller="Venues" asp-action="Index">
+                <i class="bi bi-building"></i><span class="nav-label"> Salonlar</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(IsActive("Categories") ? "active" : "")"
+               asp-area="Admin" asp-controller="Categories" asp-action="Index">
+                <i class="bi bi-tags"></i><span class="nav-label"> Kategoriler</span>
+            </a>
+        </li>
+
+        <li class="nav-item mt-2 text-muted small ps-2">Sistem</li>
+        <li class="nav-item">
+            <a class="nav-link"
+               asp-area="Auth" asp-controller="Account" asp-action="Manage">
+                <i class="bi bi-shield-check"></i><span class="nav-label"> Hesap</span>
+            </a>
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,44 @@
+﻿@using Microsoft.Extensions.Primitives
+
+@{
+    var total = (int)(ViewBag.Total ?? 0);
+    var page = (int)(ViewBag.Page ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 20);
+    var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / Math.Max(1, pageSize)));
+
+    // asp-all-route-data => IDictionary<string,string> ister
+    var routeVals = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    foreach (var kv in Context.Request.Query)
+    {
+        if (!string.Equals(kv.Key, "page", StringComparison.OrdinalIgnoreCase))
+            routeVals[kv.Key] = kv.Value.ToString(); // StringValues -> string
+    }
+}
+
+@if (totalPages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center flex-wrap gap-1">
+            <li class="page-item @(page > 1 ? "" : "disabled")">
+                <a class="page-link"
+                   asp-all-route-data="routeVals"
+                   asp-route-page="@(page - 1)">Önceki</a>
+            </li>
+
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                <li class="page-item @(p == page ? "active" : "")">
+                    <a class="page-link"
+                       asp-all-route-data="routeVals"
+                       asp-route-page="@p">@p</a>
+                </li>
+            }
+
+            <li class="page-item @(page < totalPages ? "" : "disabled")">
+                <a class="page-link"
+                   asp-all-route-data="routeVals"
+                   asp-route-page="@(page + 1)">Sonraki</a>
+            </li>
+        </ul>
+    </nav>
+}

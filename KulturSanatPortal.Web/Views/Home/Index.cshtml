@@ -1,0 +1,257 @@
+﻿@model KulturSanatPortal.Web.Models.Home.HomePageVm
+@using System.Globalization
+@{
+    ViewData["Title"] = "Anasayfa";
+    var tr = new CultureInfo("tr-TR");
+    var today = DateTime.Now;
+
+    int? prevY = ViewBag.PrevY as int?;
+    int? prevM = ViewBag.PrevM as int?;
+    int? nextY = ViewBag.NextY as int?;
+    int? nextM = ViewBag.NextM as int?;
+
+    // Renk paleti (kategori rozeti için)
+    var catPalette = new[] { "text-bg-primary", "text-bg-success", "text-bg-warning", "text-bg-danger", "text-bg-info", "text-bg-secondary" };
+}
+
+<!-- =========================
+     HERO / SLIDER
+     ========================= -->
+@if (Model.Featured.Any())
+{
+    <div class="container-xxl px-3 px-lg-4">
+        <div id="hero"
+             class="carousel slide hero-wrap shadow-sm mb-4"
+             data-bs-ride="carousel" data-bs-interval="6000" data-bs-touch="true">
+
+            <div class="carousel-inner rounded-4">
+                @for (int i = 0; i < Model.Featured.Count; i++)
+                {
+                    var e = Model.Featured[i];
+                    var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
+                    ? Url.Content(e.HeroImagePath!)
+                    : $"https://picsum.photos/seed/feat{e.Id}/1600/900";
+
+                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                        <a class="d-block position-relative text-decoration-none" asp-controller="Events" asp-action="Details" asp-route-slug="@e.Slug" aria-label="@e.Title">
+                            <figure class="hero-slide m-0">
+                                <img src="@img" class="hero-img hero-img-kenburns" alt="@e.Title" decoding="async" fetchpriority="high" />
+                                <div class="overlay hero-gradient"></div>
+                                <figcaption class="hero-caption">
+                                    <div class="caption-glass small mb-2">
+                                        <i class="bi bi-clock"></i> @e.StartLocal.ToString("dd MMM yyyy HH:mm", tr)
+                                        &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> @e.VenueName
+                                        &nbsp;·&nbsp;<i class="bi bi-tag"></i> @e.CategoryName
+                                    </div>
+                                    <h2 class="display-6 fw-semibold mb-0">@e.Title</h2>
+                                </figcaption>
+                            </figure>
+                        </a>
+                    </div>
+                }
+            </div>
+
+            <button class="carousel-control-prev btn-hero-nav" type="button" data-bs-target="#hero" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Önceki</span>
+            </button>
+            <button class="carousel-control-next btn-hero-nav" type="button" data-bs-target="#hero" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Sonraki</span>
+            </button>
+
+            <div class="carousel-indicators m-0">
+                @for (int i = 0; i < Model.Featured.Count; i++)
+                {
+                    <button type="button" data-bs-target="#hero" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")" aria-label="Slide @(i + 1)"></button>
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <section class="container-xxl px-3 px-lg-4 hero mb-4">
+        <img class="cover" src="https://picsum.photos/seed/culture/1600/900" alt="Kültür & Sanat" />
+        <div class="overlay"></div>
+        <div class="title">
+            <h1 class="display-6 fw-bold mb-1">Kültür &amp; Sanat Etkinlikleri</h1>
+            <p class="lead mb-0">Şehirdeki konser, tiyatro ve sergileri keşfedin.</p>
+        </div>
+    </section>
+}
+
+<!-- =========================
+     ANA İÇERİK
+     ========================= -->
+<div class="container-xxl px-3 px-lg-4">
+    <div class="row g-4">
+        <!-- SOL / ANA SÜTUN -->
+        <div class="col-lg-8">
+
+            <!-- KATEGORİ SEKMELERİ -->
+            <section class="section">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h2 class="h5 m-0"><i class="bi bi-calendar3 me-1"></i> Yaklaşan Etkinlikler</h2>
+                    <a asp-controller="Events" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        Tümünü Göster
+                    </a>
+                </div>
+
+                @if (Model.Categories.Any())
+                {
+                    <ul class="nav nav-pills mb-3" id="evtTabs" role="tablist">
+                        @for (int i = 0; i < Model.Categories.Count; i++)
+                        {
+                            var c = Model.Categories[i];
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @(i == 0 ? "active" : "")"
+                                        id="tab-@c.Slug" data-bs-toggle="pill" data-bs-target="#pane-@c.Slug"
+                                        type="button" role="tab">
+                                    @c.Name
+                                </button>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="tab-content" id="evtTabsContent">
+                        @for (int i = 0; i < Model.Categories.Count; i++)
+                        {
+                            var c = Model.Categories[i];
+                            var catClass = catPalette[i % catPalette.Length];
+
+                            <div class="tab-pane fade @(i == 0 ? "show active" : "")" id="pane-@c.Slug" role="tabpanel">
+                                <div class="grid-tiles">
+                                    @foreach (var e in c.Events)
+                                    {
+                                        var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
+                                        ? Url.Content(e.HeroImagePath!)
+                                        : $"https://picsum.photos/seed/event{e.Id}/800/450";
+
+                                        <div class="card h-100 card-hover">
+                                            <div class="card-media">
+                                                <img src="@img" alt="@e.Title" loading="lazy" decoding="async"
+                                                     onerror="this.onerror=null;this.src='https://picsum.photos/seed/e@e.Id/800/450';" />
+                                                <!-- Tarih rozeti -->
+                                                <span class="badge text-bg-dark position-absolute top-0 start-0 m-2">
+                                                    @e.StartLocal.ToString("dd MMM", tr)
+                                                </span>
+                                                <!-- Kategori rozeti (renkli) -->
+                                                <span class="badge @catClass position-absolute top-0 end-0 m-2">
+                                                    @e.CategoryName
+                                                </span>
+                                            </div>
+                                            <div class="card-body">
+                                                <h3 class="h6 mb-1">
+                                                    <a class="stretched-link text-decoration-none"
+                                                       asp-controller="Events" asp-action="Details" asp-route-slug="@e.Slug">
+                                                        @e.Title
+                                                    </a>
+                                                </h3>
+                                                <div class="text-secondary small">
+                                                    <i class="bi bi-clock"></i> @e.StartLocal.ToString("dd.MM.yyyy HH:mm", tr)
+                                                    &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> @e.VenueName
+                                                </div>
+                                                @if (!string.IsNullOrWhiteSpace(e.Summary))
+                                                {
+                                                    <p class="small mt-2 line-clamp-2">@e.Summary</p>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Sekme bazında tümünü göster -->
+                                <div class="text-end mt-3">
+                                    <a asp-controller="Events" asp-action="Index" asp-route-categoryId="@c.Id" class="btn btn-light btn-sm">
+                                        Bu kategoride tümü
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-light border">Şimdilik listelenecek etkinlik yok.</div>
+                }
+            </section>
+
+            <!-- HABERLER -->
+            <section class="section">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h2 class="h5 m-0"><i class="bi bi-newspaper me-1"></i> Haberler</h2>
+                    <a asp-controller="News" asp-action="Index" class="btn btn-outline-secondary btn-sm">Tüm Haberler</a>
+                </div>
+
+                @if (Model.News.Any())
+                {
+                    <div class="grid-tiles">
+                        @foreach (var n in Model.News)
+                        {
+                            var img = string.IsNullOrWhiteSpace(n.HeroImagePath)
+                            ? Url.Content($"/img/placeholders/news-{(n.Id % 5) + 1}.webp")
+                            : Url.Content(n.HeroImagePath.StartsWith("/") ? n.HeroImagePath : "/" + n.HeroImagePath);
+
+                            <div class="card h-100 card-hover">
+                                <div class="card-media">
+                                    <img src="@img" alt="@n.Title" loading="lazy" decoding="async" />
+                                </div>
+                                <div class="card-body">
+                                    <h3 class="h6 mb-1">
+                                        <a class="stretched-link text-decoration-none"
+                                           asp-controller="News" asp-action="Details" asp-route-slug="@n.Slug">
+                                            @n.Title
+                                        </a>
+                                    </h3>
+                                    <div class="text-secondary small">
+                                        <i class="bi bi-calendar-event"></i> @n.PublishedLocal.ToString("dd MMM yyyy", tr)
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(n.Summary))
+                                    {
+                                        <p class="small mt-2 line-clamp-2">@n.Summary</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-light border">Henüz haber yok.</div>
+                }
+            </section>
+
+        </div>
+
+        <!-- SAĞ / YAN SÜTUN -->
+        <aside class="col-lg-4">
+            <div class="sticky-mini">
+                <!-- Takvim kartını daha sıkı yap -->
+                <div class="card-admin p-0 overflow-hidden mb-3">
+                    <div class="p-2">
+                        <div class="calendar-mini compact">
+                            @await Html.PartialAsync("_MiniCalendar", Model.Calendar)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-admin p-3">
+                    <div class="fw-semibold mb-2">Hızlı erişim</div>
+                    <div class="d-grid gap-2">
+                        <a class="btn btn-outline-secondary btn-sm"
+                           asp-controller="Events" asp-action="Day"
+                           asp-route-year="@today.Year" asp-route-month="@today.Month" asp-route-day="@today.Day">
+                            <i class="bi bi-calendar-day"></i> Bugün
+                        </a>
+                        <a class="btn btn-outline-secondary btn-sm"
+                           asp-controller="Events" asp-action="Index"
+                           asp-route-y="@today.Year" asp-route-m="@today.Month">
+                            <i class="bi bi-calendar3"></i> Bu Ay
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>

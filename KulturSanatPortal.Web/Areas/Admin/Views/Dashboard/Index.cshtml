@@ -1,0 +1,167 @@
+﻿@model KulturSanatPortal.Application.Dashboard.AdminDashboardVm
+@{
+    ViewData["Title"] = "Panel";
+}
+
+<div class="row g-3">
+    <div class="col-12 col-md-3">
+        <div class="card-admin p-3">
+            <div class="text-secondary small">Toplam Etkinlik</div>
+            <div class="h3 m-0">@Model.Counters.TotalEvents</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card-admin p-3">
+            <div class="text-secondary small">Bu Ay</div>
+            <div class="h3 m-0">@Model.Counters.ThisMonthEvents</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card-admin p-3">
+            <div class="text-secondary small">Salon</div>
+            <div class="h3 m-0">@Model.Counters.Venues</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card-admin p-3">
+            <div class="text-secondary small">Haber</div>
+            <div class="h3 m-0">@Model.Counters.News</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <!-- Yaklaşan Etkinlikler -->
+    <div class="col-12 col-xl-8">
+        <div class="card-admin p-0">
+            <div class="p-3 fw-semibold">Yaklaşan Etkinlikler</div>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Başlık</th>
+                            <th>Tarih</th>
+                            <th>Salon</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Upcoming.Count == 0)
+                        {
+                            <tr><td colspan="4" class="text-secondary">Yaklaşan etkinlik bulunamadı.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var e in Model.Upcoming)
+                            {
+                                <tr>
+                                    <td>@e.Title</td>
+                                    <td>@e.StartLocal:g</td>
+                                    <td>@e.Venue</td>
+                                    <td>
+                                        @if (e.IsPublished)
+                                        {
+                                            <span class="badge text-bg-success">Yayında</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="badge text-bg-secondary">Taslak</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı İşlemler -->
+    <div class="col-12 col-xl-4">
+        <div class="card-admin p-3">
+            <div class="fw-semibold mb-2">Hızlı İşlemler</div>
+            <div class="d-grid gap-2">
+                <a class="btn btn-primary" asp-area="Admin" asp-controller="Events" asp-action="Create">Yeni Etkinlik</a>
+                <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="News" asp-action="Create">Yeni Haber</a>
+                <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Venues" asp-action="Create">Yeni Salon</a>
+                <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Categories" asp-action="Create">Yeni Kategori</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <!-- Son Eklenen Etkinlikler -->
+    <div class="col-12 col-xl-6">
+        <div class="card-admin p-0">
+            <div class="p-3 d-flex justify-content-between align-items-center">
+                <div class="fw-semibold">Son Eklenen Etkinlikler</div>
+                <a class="btn btn-sm btn-outline-secondary" asp-area="Admin" asp-controller="Events" asp-action="Index">Tümü</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (Model.RecentEvents.Count == 0)
+                {
+                    <li class="list-group-item text-secondary">Kayıt bulunamadı.</li>
+                }
+                else
+                {
+                    @foreach (var e in Model.RecentEvents)
+                    {
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>@e.Title</span>
+                            <span class="text-secondary">@e.StartLocal:g</span>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Son Haberler & Salonlar -->
+    <div class="col-12 col-xl-6">
+        <div class="card-admin p-0 mb-3">
+            <div class="p-3 d-flex justify-content-between align-items-center">
+                <div class="fw-semibold">Son Haberler</div>
+                <a class="btn btn-sm btn-outline-secondary" asp-area="Admin" asp-controller="News" asp-action="Index">Tümü</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (Model.RecentNews.Count == 0)
+                {
+                    <li class="list-group-item text-secondary">Henüz haber yok.</li>
+                }
+                else
+                {
+                    @foreach (var n in Model.RecentNews)
+                    {
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>@n.Title</span>
+                            <span class="text-secondary">@n.PublishedLocal:d</span>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+
+        <div class="card-admin p-0">
+            <div class="p-3 d-flex justify-content-between align-items-center">
+                <div class="fw-semibold">Salonlar</div>
+                <a class="btn btn-sm btn-outline-secondary" asp-area="Admin" asp-controller="Venues" asp-action="Index">Tümü</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (Model.Venues.Count == 0)
+                {
+                    <li class="list-group-item text-secondary">Salon kaydı yok.</li>
+                }
+                else
+                {
+                    @foreach (var v in Model.Venues)
+                    {
+                        <li class="list-group-item">@v.Name</li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+</div>

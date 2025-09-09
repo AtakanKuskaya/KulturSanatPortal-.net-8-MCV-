@@ -1,0 +1,89 @@
+﻿@model IReadOnlyList<KulturSanatPortal.Application.Events.EventListItemDto>
+@using System.Globalization
+@{
+    var tr = new CultureInfo("tr-TR");
+    var y = (int)ViewBag.Year;
+    var m = (int)ViewBag.Month;
+
+    var monthStart = new DateTime(y, m, 1);
+    var gridStart = monthStart;
+    while (gridStart.DayOfWeek != DayOfWeek.Monday) gridStart = gridStart.AddDays(-1);
+
+    var days = Enumerable.Range(0, 42).Select(i => gridStart.AddDays(i)).ToList();
+    var counts = Model.GroupBy(e => e.StartLocal.Date).ToDictionary(g => g.Key, g => g.Count());
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0"><i class="bi bi-calendar3 me-1"></i> @monthStart.ToString("MMMM yyyy", tr)</h1>
+    <div class="btn-group">
+        <a class="btn btn-sm btn-outline-secondary"
+           asp-action="Calendar" asp-route-y="@monthStart.AddMonths(-1).Year" asp-route-m="@monthStart.AddMonths(-1).Month">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <a class="btn btn-sm btn-outline-secondary"
+           asp-action="Calendar" asp-route-y="@monthStart.AddMonths(1).Year" asp-route-m="@monthStart.AddMonths(1).Month">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+</div>
+
+<div class="card-admin p-2">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr class="text-secondary">
+                    <th>Pzt</th>
+                    <th>Sal</th>
+                    <th>Çar</th>
+                    <th>Per</th>
+                    <th>Cum</th>
+                    <th>Cts</th>
+                    <th>Paz</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int r = 0; r < 6; r++)
+                {
+                    <tr>
+                        @for (int c = 0; c < 7; c++)
+                        {
+                            var d = days[r * 7 + c];
+                            var inMonth = d.Month == m;
+                            var count = counts.TryGetValue(d.Date, out var cnt) ? cnt : 0;
+                            <td class="align-top" style="min-width:120px; height:100px;">
+                                <div class="p-2 rounded @(inMonth ? "" : "text-secondary-50")">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <strong>@d.Day</strong>
+                                        @if (count > 0)
+                                        {
+                                            <a class="badge text-bg-primary text-decoration-none"
+                                               asp-action="Day" asp-route-year="@d.Year" asp-route-month="@d.Month" asp-route-day="@d.Day">
+                                                @count etkinlik
+                                            </a>
+                                        }
+                                    </div>
+                                    @if (count == 0)
+                                    {
+                                        <div class="small text-secondary-50">—</div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var e in Model.Where(x => x.StartLocal.Date == d.Date).Take(2))
+                                        {
+                                            <div class="small text-truncate">
+                                                <i class="bi bi-dot"></i>
+                                                <a class="text-decoration-none" asp-action="Details" asp-route-slug="@e.Slug">
+                                                    @e.Title
+                                                </a>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

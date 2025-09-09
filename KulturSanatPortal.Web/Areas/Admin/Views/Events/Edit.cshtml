@@ -1,0 +1,156 @@
+﻿@model KulturSanatPortal.Web.Areas.Admin.Models.EventFormVM
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var af = Antiforgery.GetAndStoreTokens(Context);
+}
+
+@{
+    ViewData["Title"] = "Etkinliği Düzenle";
+    var catList = (IEnumerable<KulturSanatPortal.Domain.Entities.EventCategory>)ViewBag.Categories;
+    var venList = (IEnumerable<KulturSanatPortal.Domain.Entities.Venue>)ViewBag.Venues;
+    var gallery = (IEnumerable<KulturSanatPortal.Domain.Entities.EventImage>)(ViewBag.Gallery ?? Enumerable.Empty<KulturSanatPortal.Domain.Entities.EventImage>());
+    string HeroSrc() => string.IsNullOrWhiteSpace(Model.ExistingHero) ? "https://picsum.photos/seed/hero/800/450" : Url.Content(Model.ExistingHero!);
+}
+<form method="post" enctype="multipart/form-data" class="card-admin p-3">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="form-grid">
+                <div class="full">
+                    <label class="form-label">Başlık</label>
+                    <input asp-for="Title" class="form-control" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+
+                <div>
+                    <label class="form-label">Slug</label>
+                    <input asp-for="Slug" class="form-control" />
+                </div>
+                <div>
+                    <label class="form-label">Kategori</label>
+                    <select asp-for="CategoryId" asp-items="@(new SelectList(catList, "Id", "Name", Model.CategoryId))" class="form-select"></select>
+                </div>
+
+                <div>
+                    <label class="form-label">Salon</label>
+                    <select asp-for="VenueId" asp-items="@(new SelectList(venList, "Id", "Name", Model.VenueId))" class="form-select"></select>
+                </div>
+                <div>
+                    <label class="form-label">Bilet Linki</label>
+                    <input asp-for="TicketUrl" class="form-control" />
+                </div>
+
+                <div class="full">
+                    <label class="form-label">Özet</label>
+                    <input asp-for="Summary" class="form-control" />
+                </div>
+                <div class="full">
+                    <label class="form-label">Açıklama</label>
+                    <textarea asp-for="DescriptionHtml" rows="8" class="form-control"></textarea>
+                </div>
+
+                <div>
+                    <label class="form-label">Başlangıç</label>
+                    <input asp-for="StartLocal" type="datetime-local" class="form-control" />
+                </div>
+                <div>
+                    <label class="form-label">Bitiş</label>
+                    <input asp-for="EndLocal" type="datetime-local" class="form-control" />
+                </div>
+
+                <div>
+                    <label class="form-label">Fiyat Bilgisi</label>
+                    <input asp-for="PriceInfo" class="form-control" />
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="IsPublished" />
+                        <label class="form-check-label" asp-for="IsPublished">Yayınla</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="IsFeatured" />
+                        <label class="form-check-label" asp-for="IsFeatured">Öne Çıkar</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Kaydet</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Listeye Dön</a>
+                <a class="btn btn-outline-secondary" asp-area="" asp-controller="Events" asp-action="Details" asp-route-slug="@Model.Slug" target="_blank">Önizle</a>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Kapak -->
+            <div class="uploader mb-3">
+                <label class="form-label">Kapak Görseli</label>
+                <div class="preview-hero mb-2">
+                    <img id="heroPreview" src="@HeroSrc()" alt="Kapak" />
+                </div>
+                <input type="file" name="hero" accept=".jpg,.jpeg,.png,.webp,.avif" id="heroInput" />
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" name="deleteHero" id="deleteHero">
+                    <label class="form-check-label" for="deleteHero">Mevcut kapağı sil</label>
+                </div>
+                <div class="help mt-1">Önerilen oran 16:9 — Maks 8MB</div>
+            </div>
+
+            <!-- Galeri -->
+            <div class="uploader">
+                <label class="form-label">Galeri (çoklu)</label>
+                <input type="file" name="gallery" multiple accept=".jpg,.jpeg,.png,.webp,.avif" />
+                <div class="help mt-1">Sürükle-bırak ile sıralayabilirsiniz.</div>
+
+                @if (gallery.Any())
+                {
+                    <div id="gal" class="gallery-grid mt-2">
+                        @foreach (var g in gallery.OrderBy(x => x.SortOrder))
+                        {
+                            <div class="gallery-item" draggable="true" data-id="@g.Id">
+                                <img src="@Url.Content(g.ImagePath)" alt="">
+                                <form method="post" asp-action="DeleteImage" asp-route-id="@Model.Id" asp-route-imageId="@g.Id">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-danger btn-del" title="Sil"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>bindHeroPreview('heroInput','heroPreview');</script>
+    <script>
+        // Basit drag&drop sıralama
+        (function(){
+            const gal = document.getElementById('gal'); if(!gal) return;
+            let dragEl=null;
+            gal.addEventListener('dragstart', e=>{ dragEl=e.target.closest('.gallery-item'); e.dataTransfer.effectAllowed='move'; });
+            gal.addEventListener('dragover', e=>{
+                e.preventDefault();
+                const over = e.target.closest('.gallery-item');
+                if(!dragEl || !over || over===dragEl) return;
+                const rect = over.getBoundingClientRect();
+                const next = (e.clientY - rect.top) / rect.height > .5;
+                gal.insertBefore(dragEl, next ? over.nextSibling : over);
+            });
+            gal.addEventListener('drop', async e=>{
+                e.preventDefault();
+                const ids = [...gal.querySelectorAll('.gallery-item')].map(x=>+x.dataset.id);
+                try{
+                    await fetch('@Url.Action("ReorderGallery", "Events", new { area = "Admin", id = Model.Id })', {
+                        method:'POST', headers:{'Content-Type':'application/json','RequestVerificationToken':'@Antiforgery.GetTokens(Context).RequestToken'},
+                        body: JSON.stringify(ids)
+                    });
+                }catch{}
+            });
+        })();
+    </script>
+}

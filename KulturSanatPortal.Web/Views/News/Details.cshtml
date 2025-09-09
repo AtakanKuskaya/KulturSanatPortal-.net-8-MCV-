@@ -1,0 +1,58 @@
+﻿@model KulturSanatPortal.Application.News.NewsDetailsDto
+@using System.Globalization
+@{
+    var tr = new CultureInfo("tr-TR");
+    ViewData["Title"] = Model.Title;
+
+    // Kapak görseli
+    var img = !string.IsNullOrWhiteSpace(Model.HeroImagePath)
+        ? Url.Content(Model.HeroImagePath.StartsWith("/") ? Model.HeroImagePath : "/" + Model.HeroImagePath)
+        : Url.Content("/img/placeholders/news-1.webp");
+}
+
+<section class="mb-3 card-admin overflow-hidden">
+    <div class="position-relative" style="aspect-ratio:16/7;">
+        <img src="@img" alt="@Model.Title" class="w-100 h-100" style="object-fit:cover;" />
+        <div class="position-absolute bottom-0 start-0 end-0 p-3 p-md-4"
+             style="background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.55));color:#fff;">
+            <div class="small opacity-75 mb-1">
+                <i class="bi bi-calendar-event"></i> @Model.PublishedLocal.ToString("dd MMMM yyyy", tr)
+            </div>
+            <h1 class="h3 fw-bold m-0">@Model.Title</h1>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <article class="col-lg-8">
+        @if (!string.IsNullOrWhiteSpace(Model.Summary))
+        {
+            <p class="lead">@Model.Summary</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.ContentHtml))
+        {
+            <div class="card-admin p-3">
+                @Html.Raw(Model.ContentHtml)
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-light border">İçerik bulunamadı.</div>
+        }
+    </article>
+
+    <aside class="col-lg-4">
+        <div class="card-admin p-3">
+            <div class="fw-semibold mb-2">Bilgiler</div>
+            <div class="small mb-2">
+                <i class="bi bi-calendar2-week"></i> @Model.PublishedLocal.ToString("dd.MM.yyyy", tr)
+            </div>
+            <div class="d-grid gap-2 mt-2">
+                <a class="btn btn-outline-secondary" asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Haberlere Dön
+                </a>
+            </div>
+        </div>
+    </aside>
+</div>

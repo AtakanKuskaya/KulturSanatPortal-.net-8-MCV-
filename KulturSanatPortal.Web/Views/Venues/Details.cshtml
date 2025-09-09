@@ -1,0 +1,65 @@
+﻿@model KulturSanatPortal.Application.Venues.VenueDto
+@{
+    ViewData["Title"] = Model.Name;
+    var hero = $"https://picsum.photos/seed/venueHero{Model.Id}/1400/520"; // placeholder
+}
+
+<section class="mb-3 card overflow-hidden">
+    <div class="position-relative" style="aspect-ratio:16/7;">
+        <img src="@hero" alt="@Model.Name" class="w-100 h-100" style="object-fit:cover;" />
+        <div class="position-absolute bottom-0 start-0 end-0 p-3 p-md-4"
+             style="background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.55));color:#fff;">
+            <h1 class="h3 fw-bold m-0">@Model.Name</h1>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card p-3">
+            <ul class="list-unstyled mb-0">
+                @if (Model.Capacity is not null)
+                {
+                    <li class="mb-2"><i class="bi bi-people-fill me-1"></i> Kapasite: <strong>@Model.Capacity</strong></li>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Address))
+                {
+                    <li class="mb-2"><i class="bi bi-geo-alt me-1"></i> @Model.Address</li>
+                }
+            </ul>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.DescriptionHtml))
+        {
+            <article class="card p-3 mt-3">
+                @Html.Raw(Model.DescriptionHtml)
+            </article>
+        }
+    </div>
+
+    <aside class="col-lg-4">
+        <div class="card p-3">
+            <div class="fw-semibold mb-2">İşlemler</div>
+            <div class="d-grid gap-2">
+                <a class="btn btn-primary"
+                   asp-controller="Events" asp-action="Index" asp-route-venueId="@Model.Id">
+                    <i class="bi bi-calendar-event"></i> Bu Salondaki Etkinlikler
+                </a>
+                <a class="btn btn-outline-secondary"
+                   asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Listeye Dön
+                </a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.MapEmbedUrl))
+        {
+            <div class="card p-0 mt-3 overflow-hidden">
+                <div class="ratio ratio-16x9">
+                    <iframe src="@Model.MapEmbedUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                            style="border:0;" allowfullscreen></iframe>
+                </div>
+            </div>
+        }
+    </aside>
+</div>

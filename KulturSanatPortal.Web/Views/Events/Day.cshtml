@@ -1,0 +1,48 @@
+﻿@model IReadOnlyList<KulturSanatPortal.Web.Models.Home.EventCard>
+@using System.Globalization
+@{
+    var tr = new CultureInfo("tr-TR");
+    var title = (string)(ViewBag.DateTitle ?? "Etkinlikler");
+    ViewData["Title"] = title;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h5 m-0"><i class="bi bi-calendar-day me-1"></i> @title</h1>
+    <a class="btn btn-sm btn-outline-secondary" onclick="history.back()"><i class="bi bi-arrow-left"></i> Geri</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-light border">Bu gün için etkinlik bulunamadı.</div>
+}
+else
+{
+    <div class="grid-tiles">
+        @foreach (var e in Model)
+        {
+            var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
+            ? Url.Content(e.HeroImagePath!)
+            : $"https://picsum.photos/seed/day{e.Id}/800/450";
+
+            <div class="card h-100 card-hover">
+                <div class="card-media">
+                    <img src="@img" alt="@e.Title" loading="lazy" decoding="async" />
+                </div>
+                <div class="card-body">
+                    <h3 class="h6 mb-1">
+                        <a class="stretched-link text-decoration-none"
+                           asp-action="Details" asp-route-slug="@e.Slug">@e.Title</a>
+                    </h3>
+                    <div class="text-secondary small">
+                        <i class="bi bi-clock"></i> @e.StartLocal.ToString("HH:mm", tr)
+                        &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> @e.VenueName
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(e.Summary))
+                    {
+                        <p class="small mt-2 line-clamp-2">@e.Summary</p>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

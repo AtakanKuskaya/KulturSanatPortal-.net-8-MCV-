@@ -1,0 +1,68 @@
+﻿@model KulturSanatPortal.Application.Common.PagedResult<KulturSanatPortal.Application.Events.EventListItemDto>
+@using System.Globalization
+@{
+    ViewData["Title"] = "Geçmiş Etkinlikler"; var tr = new CultureInfo("tr-TR");
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0"><i class="bi bi-clock-history me-1"></i> @ViewData["Title"]</h1>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left"></i> Güncel</a>
+</div>
+
+@if (!Model.Items.Any())
+{
+    <div class="alert alert-light border">Kayıt bulunamadı.</div>
+}
+else
+{
+    <div class="grid-tiles">
+        @foreach (var e in Model.Items)
+        {
+            var img = !string.IsNullOrWhiteSpace(e.HeroImagePath)
+            ? Url.Content(e.HeroImagePath!)
+            : $"https://picsum.photos/seed/past{e.Id}/800/450";
+
+            <div class="card h-100 card-hover">
+                <div class="card-media">
+                    <img src="@img" alt="@e.Title" loading="lazy" decoding="async" />
+                    <span class="badge text-bg-secondary position-absolute top-0 end-0 m-2">
+                        @e.StartLocal.ToString("dd MMM", tr)
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h3 class="h6 mb-1">
+                        <a class="stretched-link text-decoration-none"
+                           asp-action="Details" asp-route-slug="@e.Slug">@e.Title</a>
+                    </h3>
+                    <div class="text-secondary small">
+                        <i class="bi bi-geo-alt"></i> @e.VenueName · <i class="bi bi-tag"></i> @e.CategoryName
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(e.Summary))
+                    {
+                        <p class="small mt-2 line-clamp-2">@e.Summary</p>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center flex-wrap gap-1">
+                <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
+                    <a class="page-link" asp-route-page="@(Model.Page - 1)">Önceki</a>
+                </li>
+                @for (int p = 1; p <= Model.TotalPages; p++)
+                {
+                    <li class="page-item @(p == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                    <a class="page-link" asp-route-page="@(Model.Page + 1)">Sonraki</a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

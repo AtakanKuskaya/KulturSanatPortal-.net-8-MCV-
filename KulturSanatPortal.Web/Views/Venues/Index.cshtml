@@ -1,0 +1,57 @@
+﻿@model IReadOnlyList<KulturSanatPortal.Application.Venues.VenueDto>
+@{
+    ViewData["Title"] = "Salonlar";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0"><i class="bi bi-building me-1"></i> @ViewData["Title"]</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-light border">Listelenecek salon bulunamadı.</div>
+}
+else
+{
+    <div class="grid-tiles">
+        @foreach (var v in Model)
+        {
+            var img = $"https://picsum.photos/seed/venue{v.Id}/800/450"; // placeholder
+
+            <article class="card h-100 card-hover">
+                <div class="card-media">
+                    <img src="@img" alt="@v.Name" loading="lazy" decoding="async" />
+                    @if (v.Capacity is not null)
+                    {
+                        <span class="badge text-bg-primary position-absolute top-0 start-0 m-2">
+                            <i class="bi bi-people-fill"></i> @v.Capacity
+                        </span>
+                    }
+                </div>
+                <div class="card-body">
+                    <h2 class="h6 mb-1">
+                        <a class="stretched-link text-decoration-none"
+                           asp-action="Details" asp-route-slug="@v.Slug">@v.Name</a>
+                    </h2>
+
+                    @if (!string.IsNullOrWhiteSpace(v.Address))
+                    {
+                        <div class="small text-secondary mt-1">
+                            <i class="bi bi-geo-alt"></i> @v.Address
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-transparent border-0 d-flex gap-2">
+                    <a class="btn btn-sm btn-primary"
+                       asp-controller="Events" asp-action="Index" asp-route-venueId="@v.Id">
+                        <i class="bi bi-calendar-event"></i> Etkinlikler
+                    </a>
+                    <a class="btn btn-sm btn-outline-secondary"
+                       asp-action="Details" asp-route-slug="@v.Slug">
+                        <i class="bi bi-card-text"></i> Detay
+                    </a>
+                </div>
+            </article>
+        }
+    </div>
+}
